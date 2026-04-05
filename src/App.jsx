@@ -67,11 +67,51 @@ function urlSefaz(chave) {
   return `https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx?tipoConsulta=resumo&tipoConteudo=7PhJ+gAVw2g=&nfe=${chave}`
 }
 
+// ── Gera XML dos dados decodificados ─────────────────────────
+function gerarXML(dados, chave) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<consultaNFe>
+  <chaveAcesso>${chave}</chaveAcesso>
+  <uf>${dados.uf}</uf>
+  <estado>${dados.estado}</estado>
+  <emissao>${dados.emissao}</emissao>
+  <cnpjEmitente>${dados.cnpj}</cnpjEmitente>
+  <modelo>${dados.modelo}</modelo>
+  <serie>${dados.serie}</serie>
+  <numeroNFe>${dados.numero}</numeroNFe>
+  <tipoEmissao>${dados.tipoEmissao}</tipoEmissao>
+  <codigoNF>${dados.codigoNF}</codigoNF>
+  <digitoVerificador>${dados.digitoVerif}</digitoVerificador>
+  <urlSefaz>${urlSefaz(chave)}</urlSefaz>
+</consultaNFe>`
+}
+
+// ── Download de arquivo ───────────────────────────────────────
+function downloadArquivo(conteudo, nome, tipo) {
+  const blob = new Blob([conteudo], { type: tipo })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = nome
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 // ── Componente principal ──────────────────────────────────────
 export default function App() {
   const [raw, setRaw]       = useState("")
   const [dados, setDados]   = useState(null)
   const [erro, setErro]     = useState("")
+
+  const handleBaixarXML = () => {
+    if (!dados || !raw) return
+    const xml = gerarXML(dados, raw)
+    downloadArquivo(xml, `NFe_${raw}.xml`, "application/xml")
+  }
+
+  const handleBaixarPDF = () => {
+    window.print()
+  }
 
   const handleChange = (e) => {
     const v = e.target.value.replace(/\D/g, "").slice(0, 44)
@@ -162,14 +202,22 @@ export default function App() {
               <div style={s.chaveVal}>{formatarChave(raw)}</div>
             </div>
 
-            <a
-              href={urlSefaz(raw)}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{...s.btn, ...s.btnSefaz, display:"inline-flex", textDecoration:"none", marginTop:16}}
-            >
-              🌐 Verificar status no SEFAZ
-            </a>
+            <div style={{display:"flex", gap:10, flexWrap:"wrap", marginTop:16}} className="no-print">
+              <button onClick={handleBaixarXML} style={{...s.btn, ...s.btnXml}}>
+                📋 Baixar XML
+              </button>
+              <button onClick={handleBaixarPDF} style={{...s.btn, ...s.btnPdf}}>
+                📄 Baixar PDF
+              </button>
+              <a
+                href={urlSefaz(raw)}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{...s.btn, ...s.btnSefaz, display:"inline-flex", textDecoration:"none"}}
+              >
+                🌐 Verificar no SEFAZ
+              </a>
+            </div>
           </div>
         )}
       </div>
@@ -224,6 +272,8 @@ const s = {
   btnDisabled: { background:"#1e3a5f", color:"#475569", cursor:"not-allowed" },
   btnSecondary: { background:"#1e293b", color:"#94a3b8", border:"1px solid #334155" },
   btnSefaz: { background:"#059669", color:"#fff" },
+  btnXml:   { background:"#7c3aed", color:"#fff" },
+  btnPdf:   { background:"#b45309", color:"#fff" },
   resultado: { marginTop:24, borderTop:"1px solid #334155", paddingTop:24 },
   resultHeader: { fontSize:12, fontWeight:700, color:"#94a3b8", textTransform:"uppercase", letterSpacing:1, marginBottom:14 },
   grid: { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 },
